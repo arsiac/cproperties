@@ -76,15 +76,12 @@ void freeProperties(cProperties *cp)
         cNode *temp1 = NULL, *temp2 = NULL;
         for (int i=0; i<cp->size; i++)
         {
-            if (cp->array[i])
+            temp1 = cp->array[i];
+            while(temp1)
             {
-                temp1 = cp->array[i];
-                while(temp1)
-                {
-                    temp2 = temp1;
-                    temp1 = temp2->next;
-                    freeNode(temp2);
-                }
+                temp2 = temp1;
+                temp1 = temp2->next;
+                freeNode(temp2);
             }
         }
         free(cp->array);
@@ -189,6 +186,35 @@ const char *cPropertiesGet(const cProperties *cp, const char *key)
         return NULL;
 }
 
+
+int cPropertiesDelete(const cProperties *cp, const char *key)
+{
+    if (!key) return FALSE;
+    int hash = stringHash(key);
+    int arrayIndex = hash % cp->size;
+    
+    // 如果链表开始节点是要删除的节点
+    cNode *temp = NULL;
+    if (cp->array[arrayIndex]->hash == hash)
+    {
+        temp = cp->array[arrayIndex];
+        cp->array[arrayIndex] = temp->next;
+        freeNode(temp);
+        return TRUE;
+    } 
+    else
+    {
+        cNode *node;
+        for (node = cp->array[arrayIndex], temp = node->next; node && temp; node = temp, temp = temp->next)
+            if (temp->hash == hash)
+            {
+                node->next = temp->next;
+                freeNode(temp);
+                return TRUE;
+            }
+    }
+    return FALSE;
+}
 
 void printfProperties(const cProperties *cp)
 {

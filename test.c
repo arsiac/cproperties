@@ -11,11 +11,11 @@ int main()
     cPropertiesSet(properties, "name", "ZhangSan");
     cPropertiesSet(properties, "age", "22");
     cPropertiesSet(properties, "sex", "man");
+    cPropertiesSet(properties, "phone", "1234567890");
 
     printfProperties(properties);
-    const char *age = cPropertiesGet(properties, "age");
-    puts(age);
-    const char *weight = cPropertiesGet(properties, "weight");
-    puts(weight);
+    puts("delete age");
+    cPropertiesDelete(properties, "age");
+    printfProperties(properties);
     return 0;
 }
