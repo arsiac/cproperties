@@ -31,7 +31,7 @@ long getFileSize(const FILE *file)
 // 字符串区域拷贝
 void strcopy(char *dest, const char *src, int start, int end)
 {
-    for (int i=0; i+start <= end; i++)
+    for (int i = 0; i + start <= end; i++)
     {
         dest[i] = src[i + start];
     }
@@ -295,7 +295,7 @@ cProperties *createPropertiesFromFile(const char *path)
         return NULL;
     }
     char *fileBuffer = (char *)malloc(fileSize * sizeof(char) + 1);
-     if (!fileBuffer)
+    if (!fileBuffer)
     {
         return NULL;
     }
@@ -309,7 +309,15 @@ cProperties *createPropertiesFromFile(const char *path)
     int bufferPoint = 0,
         copyCount = 0;
 
-    enum status{start, annotation, key, value, error, end};
+    enum status
+    {
+        start,
+        annotation,
+        key,
+        value,
+        error,
+        end
+    };
     enum status state = start;
     while (TRUE)
     {
@@ -355,11 +363,11 @@ cProperties *createPropertiesFromFile(const char *path)
             break;
         case key:
             copyCount = 0;
-            while (fileBuffer[bufferPoint] != ' ' && 
-                fileBuffer[bufferPoint] != '=' && 
-                fileBuffer[bufferPoint] != '\n' && 
-                fileBuffer[bufferPoint] != '\r' && 
-                fileBuffer[bufferPoint] != '\0')
+            while (fileBuffer[bufferPoint] != ' ' &&
+                   fileBuffer[bufferPoint] != '=' &&
+                   fileBuffer[bufferPoint] != '\n' &&
+                   fileBuffer[bufferPoint] != '\r' &&
+                   fileBuffer[bufferPoint] != '\0')
             {
                 if (copyCount >= CPROPERTIES_KEY_MAX_SIZE)
                 {
@@ -373,20 +381,11 @@ cProperties *createPropertiesFromFile(const char *path)
             {
                 bufferPoint++;
             }
-            if (fileBuffer[bufferPoint] == '\n' || fileBuffer[bufferPoint] == '\r' || fileBuffer[bufferPoint] == '\0')
+            if (fileBuffer[bufferPoint] != '=')
             {
-                bufferPoint++;
-                if (fileBuffer[bufferPoint] == '\n' || fileBuffer[bufferPoint] == '\r')
-                {
-                    bufferPoint++;
-                }
                 state = error;
             }
-            else if (fileBuffer[bufferPoint] == '\0')
-            {
-                state = end;
-            }
-            else if (fileBuffer[bufferPoint] == '=')
+            else
             {
                 bufferPoint++;
                 state = value;
@@ -407,8 +406,7 @@ cProperties *createPropertiesFromFile(const char *path)
                 tempValue[copyCount++] = fileBuffer[bufferPoint++];
             }
             tempValue[copyCount] = '\0';
-            // printf("key: [%s], value: [%s]\n", tempKey, tempValue);
-            cPropertiesSet(cp, tempKey, tempValue);
+            printf("key: [%s], value: [%s]\n", tempKey, tempValue);
             if (fileBuffer[bufferPoint] == '\n' || fileBuffer[bufferPoint] == '\r')
             {
                 bufferPoint++;
@@ -420,7 +418,7 @@ cProperties *createPropertiesFromFile(const char *path)
             }
             break;
         case error:
-            printf("error: %s", tempKey);
+            printf("error: %s\n", tempKey);
             while (fileBuffer[bufferPoint] != '\n' && fileBuffer[bufferPoint] != '\r' && fileBuffer[bufferPoint] != '\0')
             {
                 bufferPoint++;
