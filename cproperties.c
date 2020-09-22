@@ -294,12 +294,13 @@ cProperties *createPropertiesFromFile(const char *path)
     {
         return NULL;
     }
-    char *fileBuffer = (char *)malloc(fileSize * sizeof(char));
+    char *fileBuffer = (char *)malloc(fileSize * sizeof(char) + 1);
      if (!fileBuffer)
     {
         return NULL;
     }
     fread(fileBuffer, sizeof(char), fileSize, file);
+    fileBuffer[fileSize] = '\0';
     fclose(file);
 
     cProperties *cp = newProperties();
