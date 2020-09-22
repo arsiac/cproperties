@@ -15,7 +15,7 @@ int main()
 
     printfProperties(properties);
     puts("delete age");
-    cPropertiesDelete(properties, "age");
-    printfProperties(properties);
+    cPropertiesDelete(properties, "age"); 
+    printProperties(properties);
     return 0;
 }

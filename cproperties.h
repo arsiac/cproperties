@@ -17,6 +17,8 @@
 #endif
 
 #define CPROPERTIES_ARRAY_SIZE 128
+#define CPROPERTIES_KEY_MAX_SIZE 256
+#define CPROPERTIES_VALUE_MAX_SIZE 256
 
 typedef struct __Node {
     int hash;
@@ -35,11 +37,13 @@ void freeNode(cNode *node);
 cProperties *newProperties();
 void freeProperties(cProperties *cp);
 
-void cPropertiesSet(const cProperties *cp, const char *key, const char *value);
+int cPropertiesSet(const cProperties *cp, const char *key, const char *value);
 const char *cPropertiesGet(const cProperties *cp, const char *key);
 int cPropertiesContainsKey(const cProperties *cp, const char *key);
 int cPropertiesDelete(const cProperties *cp, const char *key);
 
-void printfProperties(const cProperties *cp);
-void printfNode(const cNode *node);
+void printProperties(const cProperties *cp);
+void printNode(const cNode *node);
+
+cProperties *createPropertiesFromFile(const char *path);
 #endif
