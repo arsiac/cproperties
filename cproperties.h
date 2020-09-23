@@ -47,4 +47,5 @@ void printNode(const cNode *node);
 void printStructure(const cProperties *cp);
 
 cProperties *createPropertiesFromFile(const char *path);
+int cPropertiesWriteToFile(const cProperties * cp, const char *path);
 #endif

@@ -453,6 +453,11 @@ cProperties *createPropertiesFromFile(const char *path)
                 tempValue[copyCount++] = fileBuffer[bufferPoint++];
             }
             tempValue[copyCount] = '\0';
+            while (tempValue[--copyCount] == ' ')
+            {
+                tempValue[copyCount] = '\0';
+            }
+            
             // printf("key: [%s], value: [%s]\n", tempKey, tempValue);
             cPropertiesSet(cp, tempKey, tempValue);
             if (fileBuffer[bufferPoint] == '\n' || fileBuffer[bufferPoint] == '\r')
@@ -490,4 +495,33 @@ cProperties *createPropertiesFromFile(const char *path)
     }
     free(fileBuffer);
     return cp;
+}
+
+
+int cPropertiesWriteToFile(const cProperties * cp, const char *path)
+{
+    if (!cp || !cp->array || !path)
+    {
+        return FALSE;
+    }
+
+    FILE *file = fopen(path, "w+");
+    if (!file)
+    {
+        printf("open or create file failed.[%s]\n", path);
+        return FALSE;
+    }
+
+    cNode *temp = NULL;
+    for (int i=0; i<cp->size; i++)
+    {
+        temp = cp->array[i];
+        while (temp)
+        {
+            fprintf(file, "%s=%s\n", temp->key, temp->value);
+            temp = temp->next;
+        }
+        
+    }
+    fclose(file);
 }
