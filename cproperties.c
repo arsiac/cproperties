@@ -524,4 +524,5 @@ int cPropertiesWriteToFile(const cProperties * cp, const char *path)
         
     }
     fclose(file);
+    return TRUE;
 }
