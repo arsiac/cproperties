@@ -7,15 +7,14 @@ int stringHash(const char *str)
     if (str)
     {
         length = strlen(str);
-        if (length > 0)
-            for (int i = 0; i < length; i++)
-                hash = 31 * hash + str[i];
+        for (int i = 0; i < length; i++)
+            hash = 31 * hash + str[i];
     }
     return hash;
 }
 
 // 获取文件大小
-long getFileSize(const FILE *file)
+long getFileSize(FILE *file)
 {
     if (!file)
         return 0;
@@ -28,26 +27,27 @@ long getFileSize(const FILE *file)
     return size;
 }
 
-// 字符串区域拷贝
-void strcopy(char *dest, const char *src, int start, int end)
-{
-    for (int i = 0; i + start <= end; i++)
-    {
-        dest[i] = src[i + start];
-    }
-}
-
 cNode *newNode(const int hash, const char *key, const char *value)
 {
     // key不能为NULL
     if (!key)
+    {
         return NULL;
+    }
 
-    cNode *node = (cNode *)malloc(sizeof(cNode));
     int keylen, vallen;
 
     keylen = strlen(key);
+    if (keylen <= 0)
+    {
+        return NULL;
+    }
+
     vallen = value == NULL ? 0 : strlen(value);
+
+    cNode *node = (cNode *)malloc(sizeof(cNode));
+    node->hash = hash;
+    node->next = NULL;
 
     node->key = (char *)malloc(sizeof(char) * keylen + 1);
     strcpy(node->key, key);
@@ -59,10 +59,6 @@ cNode *newNode(const int hash, const char *key, const char *value)
     }
     else
         node->value = NULL;
-
-    node->hash = hash;
-
-    node->next = NULL;
 
     return node;
 }
@@ -97,7 +93,9 @@ cProperties *newProperties()
 void freeProperties(cProperties *cp)
 {
     if (!cp)
+    {
         return;
+    }
 
     if (cp->array)
     {
@@ -158,51 +156,52 @@ int cPropertiesSet(const cProperties *cp, const char *key, const char *value)
 
     // 计算key的hash
     int hash = stringHash(key);
-
-    // 尝试寻找key所在的节点
-    cNode *node = getNodeFromHash(cp, hash);
-
-    // key的节点已经存在则修改value
-    if (node)
+    if (!hash)
     {
-        // 释放原来的value内存
-        if (node->value)
-            free(node->value);
-
-        // value不为NULL且长度大于0才分配内存存储value
-        if (value)
-        {
-            int length = strlen(value);
-            if (length > 0)
-            {
-                node->value = (char *)malloc(length * sizeof(char) + 1);
-                strcpy(node->value, value);
-            }
-            else
-                node->value = NULL;
-        }
-        else
-            node->value = NULL;
+        return FALSE;
     }
-    // key不在已知节点中则插入新节点
+
+    int index = hash % cp->size;
+    index = index < 0 ? -index : index;
+    cNode *temp = NULL;
+    // 链表表头为NULL
+    if (cp->array[index] == NULL)
+    {
+        cp->array[index] = newNode(hash, key, value);
+    }
     else
     {
-        node = newNode(hash, key, value);
-        int arrayIndex = hash % cp->size;
-        cNode *temp = cp->array[arrayIndex];
-        if (temp)
-            while (temp)
+        temp = cp->array[index];
+        do
+        {
+            // 表中已有该key， 修改value
+            if (temp->hash == hash)
             {
-                if (!temp->next)
+                free(temp->value);
+                temp->value = NULL;
+                if (value)
                 {
-                    temp->next = node;
-                    break;
+                    int vallen = strlen(value);
+                    if (vallen > 0)
+                    {
+                        temp->value = (char *)malloc(vallen * sizeof(char) + 1);
+                        strcpy(temp->value, value);
+                    }
                 }
+                break;
+            }
+            else if (!temp->next)
+            {
+                temp->next = newNode(hash, key, value);
+                break;
+            }
+            else
+            {
                 temp = temp->next;
             }
-        else
-            cp->array[arrayIndex] = node;
+        } while (temp);
     }
+
     return TRUE;
 }
 
@@ -279,24 +278,63 @@ void printNode(const cNode *node)
     printf("key: %s\tvalue: %s\thash: %d\n", node->key, node->value, node->hash);
 }
 
+void printStructure(const cProperties *cp)
+{
+    if (!cp || !cp->array)
+    {
+        puts("(null)");
+        return;
+    }
+
+    cNode *temp;
+    for (int i = 0; i < cp->size; i++)
+    {
+        temp = cp->array[i];
+        if (temp)
+        {
+            printf("array[%d]: ", i);
+            while (temp)
+            {
+                if (temp->next)
+                {
+                    printf("%s:%s -> ", temp->key, temp->value);
+                }
+                else
+                {
+                    printf("%s:%s", temp->key, temp->value);
+                }
+                temp = temp->next;
+            }
+            putchar('\n');
+        }
+    }
+}
+
 cProperties *createPropertiesFromFile(const char *path)
 {
     if (!path)
+    {
+        puts("cproperties: the file path cannot be NULL.");
         return NULL;
+    }
+
     FILE *file = fopen(path, "rb");
     if (!file)
     {
+        printf("cproperties: failed to open file.[%s]", path);
         return NULL;
     }
 
     long fileSize = getFileSize(file);
     if (!fileSize)
     {
+        printf("cproperties: file is empty.[%s]", path);
         return NULL;
     }
     char *fileBuffer = (char *)malloc(fileSize * sizeof(char) + 1);
     if (!fileBuffer)
     {
+        puts("cproperties: buffer request failed.");
         return NULL;
     }
     fread(fileBuffer, sizeof(char), fileSize, file);
@@ -307,6 +345,7 @@ cProperties *createPropertiesFromFile(const char *path)
     char tempKey[CPROPERTIES_KEY_MAX_SIZE],
         tempValue[CPROPERTIES_VALUE_MAX_SIZE];
     int bufferPoint = 0,
+        lineCount = 0,
         copyCount = 0;
 
     enum status
@@ -329,6 +368,7 @@ cProperties *createPropertiesFromFile(const char *path)
         switch (state)
         {
         case start:
+            lineCount++;
             while (fileBuffer[bufferPoint] == ' ' || fileBuffer[bufferPoint] == '\n' || fileBuffer[bufferPoint] == '\r')
             {
                 bufferPoint++;
@@ -336,6 +376,10 @@ cProperties *createPropertiesFromFile(const char *path)
             if (fileBuffer[bufferPoint] == '#')
             {
                 state = annotation;
+            }
+            else if (fileBuffer[bufferPoint] == '=')
+            {
+                state = error;
             }
             else if (fileBuffer[bufferPoint] == '\0')
             {
@@ -397,7 +441,10 @@ cProperties *createPropertiesFromFile(const char *path)
                 bufferPoint++;
             }
             copyCount = 0;
-            while (fileBuffer[bufferPoint] != '\n' && fileBuffer[bufferPoint] != '\r' && fileBuffer[bufferPoint] != '\0')
+            while (fileBuffer[bufferPoint] != '\n' &&
+                   fileBuffer[bufferPoint] != '\r' &&
+                   fileBuffer[bufferPoint] != '\0' &&
+                   fileBuffer[bufferPoint] != '#')
             {
                 if (copyCount >= CPROPERTIES_VALUE_MAX_SIZE)
                 {
@@ -406,11 +453,16 @@ cProperties *createPropertiesFromFile(const char *path)
                 tempValue[copyCount++] = fileBuffer[bufferPoint++];
             }
             tempValue[copyCount] = '\0';
-            printf("key: [%s], value: [%s]\n", tempKey, tempValue);
+            // printf("key: [%s], value: [%s]\n", tempKey, tempValue);
+            cPropertiesSet(cp, tempKey, tempValue);
             if (fileBuffer[bufferPoint] == '\n' || fileBuffer[bufferPoint] == '\r')
             {
                 bufferPoint++;
                 state = start;
+            }
+            else if (fileBuffer[bufferPoint] == '#')
+            {
+                state = annotation;
             }
             else if (fileBuffer[bufferPoint] == '\0')
             {
@@ -418,7 +470,7 @@ cProperties *createPropertiesFromFile(const char *path)
             }
             break;
         case error:
-            printf("error: %s\n", tempKey);
+            printf("error: %d\n", lineCount);
             while (fileBuffer[bufferPoint] != '\n' && fileBuffer[bufferPoint] != '\r' && fileBuffer[bufferPoint] != '\0')
             {
                 bufferPoint++;

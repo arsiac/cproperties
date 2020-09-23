@@ -44,6 +44,7 @@ int cPropertiesDelete(const cProperties *cp, const char *key);
 
 void printProperties(const cProperties *cp);
 void printNode(const cNode *node);
+void printStructure(const cProperties *cp);
 
 cProperties *createPropertiesFromFile(const char *path);
 #endif
