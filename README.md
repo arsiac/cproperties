@@ -65,4 +65,4 @@ user.name=ZhangSan
 
 - result 1
 
-  ![](../images/ex001.png)
+  ![](images/ex001.png)
