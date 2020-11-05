@@ -1,14 +1,23 @@
 #include "cproperties.h"
 
 // 计算字符串哈希值
-int stringHash(const char *str)
+int stringHash(const char *szString)
 {
-    int hash = 0, length;
-    if (str)
+    int hash = 0;
+    // if (str)
+    // {
+    //     int length = strlen(str);
+    //     for (int i = 0; i < length; i++)
+    //         hash = 31 * hash + str[i];
+    // }
+    if (szString) 
     {
-        length = strlen(str);
-        for (int i = 0; i < length; i++)
-            hash = 31 * hash + str[i];
+        int count = 0;
+        char character;
+        while ('\0' != (character = szString[count++]))
+        {
+            hash = hash * 31 + character;
+        }
     }
     return hash;
 }
