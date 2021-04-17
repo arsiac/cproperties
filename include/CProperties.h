@@ -2,7 +2,6 @@
 #define CPP_CPROPERTIES_H
 
 #include <cstdio>
-#include <cstdlib>
 
 namespace ac
 {
@@ -16,6 +15,8 @@ namespace ac
         CProperties(const char *path);
         ~CProperties();
 
+        void load(const char *path);
+        void save(const char *path);
         int size();
         void clear();
         void remove(const char *key);
@@ -23,14 +24,16 @@ namespace ac
         char *get(const char *key);
 
     private:
-        // properties structure
         class Node;
 
         Node **properties;
         int propertySize;
 
         void initialize();
-        long fileSize(FILE *file);
+        size_t fileSize(FILE *file);
+        char *readFile(FILE *file);
+        bool isBlank(char c);
+        void analyze(const char *str);
         void append(Node *node);
         Node *find(const char *key);
     };

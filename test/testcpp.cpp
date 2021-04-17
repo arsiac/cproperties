@@ -1,15 +1,24 @@
 #include "../include/CProperties.h"
-int main()
+int main(int argc, char *argv[])
 {
     using namespace ac;
-    ac::CProperties p;
+    
+    if (argc == 1)
+    {
+        puts("testcpp <file name>");
+        return 1;
+    }
 
-    printf("p:ArraySize -> %d\np:PropertiesMaxSize -> %d\n", p.ARRAY_SIZE, p.PROPERTY_MAX_SIZE);
+    CProperties p;
+    p.load(argv[1]);
 
-    p.set("a", "arsiac");
-    p.set("b", "blabla");
+    printf("user.name: %s\n", p.get("user.name"));
+    puts("set user.name = LiSi");
 
-    printf("a: %s\nb: %s\nc: %s", p.get("a"), p.get("b"), p.get("c"));
+    p.set("user.name", "LiSi");
 
+    puts("add user.phone=123");
+    p.set("user.phone", "123");
+    p.save(argv[1]);
     return 0;
 }

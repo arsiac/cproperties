@@ -17,18 +17,25 @@ ac::CProperties::CProperties()
 ac::CProperties::CProperties(const char *path)
 {
     initialize();
+    load(path);
 }
 
 ac::CProperties::~CProperties()
 {
     clear();
-    free(properties);
+    delete[] properties;
 }
 
 /* Private */
 void ac::CProperties::initialize()
 {
-    properties = (Node **)malloc(ARRAY_SIZE * sizeof(Node *));
+    if (properties != nullptr)
+    {
+        clear();
+        delete[] properties;
+    }
+
+    properties = new Node *[ARRAY_SIZE];
 
     for (int i = 0; i < ARRAY_SIZE; i++)
     {
@@ -38,18 +45,214 @@ void ac::CProperties::initialize()
     propertySize = 0;
 }
 
-long ac::CProperties::fileSize(FILE *file)
+size_t ac::CProperties::fileSize(FILE *file)
 {
-    if (!file)
+    if (file == nullptr)
     {
-        return 0;
+        return (size_t)0;
     }
-    long locationCache, size;
+
+    long locationCache;
+    size_t size;
+
     locationCache = ftell(file);
     fseek(file, 0, SEEK_END);
     size = ftell(file);
     fseek(file, locationCache, SEEK_SET);
     return size;
+}
+
+char *ac::CProperties::readFile(FILE *file)
+{
+    if (file == nullptr)
+    {
+        return nullptr;
+    }
+
+    // get file size
+    size_t bufferSize = fileSize(file);
+
+    if (bufferSize == 0)
+    {
+        return nullptr;
+    }
+
+    // set cursor to file header
+    fseek(file, (long)0, SEEK_SET);
+
+    // create buffer
+    char *fileBuffer = new char[bufferSize + 1];
+    fread(fileBuffer, sizeof(char), bufferSize, file);
+
+    // end of buffer
+    fileBuffer[bufferSize] = '\0';
+
+    return fileBuffer;
+}
+
+bool ac::CProperties::isBlank(char c)
+{
+    return c == ' ' || c == '\t' || c == '\n' || c == '\r' || c == '\v' || c == '\f';
+}
+
+void ac::CProperties::analyze(const char *str)
+{
+    // check
+    if (str == nullptr)
+    {
+        puts("analyze: null pointer -> str");
+        return;
+    }
+
+    if (properties == nullptr)
+    {
+        initialize();
+    }
+
+    enum status
+    {
+        ready,
+        key,
+        devision,
+        value,
+        annotation,
+        error,
+        end
+    };
+    status state = ready;
+    unsigned long count = 0;
+    int propertyCount = 0;
+    char *property = new char[PROPERTY_MAX_SIZE + 1];
+    Node node;
+
+    // start analyze
+    while (state != end)
+    {
+        switch (state)
+        {
+        case ready:
+            if (!isBlank(str[count]))
+            {
+                if (str[count] == '#')
+                {
+                    state = annotation;
+                }
+                else if (str[count] == '\0')
+                {
+                    state = end;
+                }
+                else
+                {
+                    state = key;
+                    propertyCount = 0;
+                    property[propertyCount++] = str[count];
+                }
+            }
+            break;
+
+        case key:
+            if (str[count] != '=')
+            {
+                if (str[count] == '\0' || str[count] == '\n')
+                {
+                    state = error;
+                }
+                else
+                {
+                    property[propertyCount++] = str[count];
+                }
+            }
+            else
+            {
+                state = devision;
+
+                // end of key
+                property[propertyCount] = '\0';
+
+                // remove blank
+                while (isBlank(property[--propertyCount]))
+                {
+                    property[propertyCount] = '\0';
+                }
+                node.setKey(property);
+            }
+            break;
+
+        case devision:
+            if (!isBlank(str[count]))
+            {
+                state = value;
+                propertyCount = 0;
+                property[propertyCount++] = str[count];
+            }
+
+            break;
+
+        case value:
+            if (str[count] != '\n' && str[count] != '\r' && str[count] != '\0' && str[count] != '#')
+            {
+                property[propertyCount++] = str[count];
+            }
+            else
+            {
+                if (str[count] == '\0')
+                {
+                    state = end;
+                }
+                else if (str[count] == '#')
+                {
+                    state = annotation;
+                }
+                else
+                {
+                    // CRLF
+                    if (str[count] == '\r' && str[count + 1] == '\n')
+                    {
+                        count++;
+                    }
+
+                    state = ready;
+                }
+
+                // end of value
+                property[propertyCount] = '\0';
+
+                // remove blank
+                while (isBlank(property[--propertyCount]))
+                {
+                    property[propertyCount] = '\0';
+                }
+                node.setValue(property);
+                set(node.getKey(), node.getValue());
+            }
+            break;
+
+        case annotation:
+            if (str[count] == '\n' || str[count] == '\r')
+            {
+                // CRLF
+                if (str[count] == '\r' && str[count + 1] == '\n')
+                {
+                    count++;
+                }
+                state = ready;
+            }
+            break;
+
+        case error:
+            property[propertyCount] = '\0';
+            printf("analyze: syntax error -> [%s]\n", property);
+            state = ready;
+            break;
+
+        default:
+            printf("analyze: unknown status -> %d\n", state);
+            break;
+        }
+        count++;
+    }
+
+    delete[] property;
 }
 
 void ac::CProperties::append(Node *node)
@@ -79,6 +282,8 @@ void ac::CProperties::append(Node *node)
         inode->setNext(node);
         node->setPrevious(inode);
     }
+
+    propertySize++;
 }
 
 ac::CProperties::Node *ac::CProperties::find(const char *key)
@@ -106,6 +311,60 @@ ac::CProperties::Node *ac::CProperties::find(const char *key)
 }
 
 /* Public */
+void ac::CProperties::load(const char *path)
+{
+    if (path == nullptr)
+    {
+        puts("load: file path is null pointer.");
+        return;
+    }
+
+    FILE *file = fopen(path, "rb");
+    if (file == nullptr)
+    {
+        printf("load: open file failed.[%s]\n", path);
+        return;
+    }
+
+    char *buffer = readFile(file);
+    fclose(file);
+    if (buffer == nullptr)
+    {
+        printf("load: read file failed.[%s]\n", path);
+        return;
+    }
+
+    analyze(buffer);
+}
+
+void ac::CProperties::save(const char *path)
+{
+    if (path == nullptr)
+    {
+        puts("save: file path is null pointer.");
+        return;
+    }
+
+    FILE *file = fopen(path, "w+");
+    if (file == nullptr)
+    {
+        printf("save: open/create file failed.[%s]\n", path);
+        return;
+    }
+
+    Node *node = nullptr;
+    for (int i = 0; i < ARRAY_SIZE; i++)
+    {
+        node = properties[i];
+        while (node != nullptr)
+        {
+            fprintf(file, "%s=%s\n", node->getKey(), node->getValue());
+            node = node->getNext();
+        }
+    }
+    fclose(file);
+}
+
 int ac::CProperties::size()
 {
     return propertySize;
@@ -121,7 +380,7 @@ void ac::CProperties::clear()
         while (current)
         {
             next = current ? current->getNext() : nullptr;
-            free(current);
+            delete current;
             current = next;
         }
     }
@@ -171,8 +430,6 @@ char *ac::CProperties::get(const char *key)
     return target == nullptr ? nullptr : target->getValue();
 }
 
-
-
 /***************************
  *    CProperties::Node    *
  ***************************/
@@ -200,12 +457,12 @@ ac::CProperties::Node::~Node()
 {
     if (key != nullptr)
     {
-        free(key);
+        delete[] key;
     }
 
     if (value != nullptr)
     {
-        free(value);
+        delete[] value;
     }
 }
 
@@ -261,7 +518,7 @@ char *ac::CProperties::Node::strcpy(const char *src)
         length++, str++;
     }
 
-    char *dest = (char *)malloc((length + 1) * sizeof(char));
+    char *dest = new char[length + 1];
 
     dest[length] = '\0';
     for (int i = 0; i < length; i++)
@@ -272,13 +529,12 @@ char *ac::CProperties::Node::strcpy(const char *src)
     return dest;
 }
 
-
 /* Public */
 void ac::CProperties::Node::setKey(const char *key)
 {
     if (this->key != nullptr)
     {
-        free(this->key);
+        delete[] this->key;
     }
     this->key = strcpy(key);
 }
@@ -287,7 +543,7 @@ void ac::CProperties::Node::setValue(const char *value)
 {
     if (this->value != nullptr)
     {
-        free(this->value);
+        delete[] this->value;
     }
     this->value = strcpy(value);
 }
@@ -338,8 +594,8 @@ int ac::CProperties::Node::hashCode()
 bool ac::CProperties::Node::equals(Node *other)
 {
     return this->hashCode() == other->hashCode() &&
-            0 == strcmp(this->getKey(), other->getKey()) &&
-            0 == strcmp(this->getValue(), other->getValue());
+           0 == strcmp(this->getKey(), other->getKey()) &&
+           0 == strcmp(this->getValue(), other->getValue());
 }
 
 bool ac::CProperties::Node::keyEquals(const char *key)

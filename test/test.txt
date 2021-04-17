@@ -1,0 +1,5 @@
+user.phone=123
+user.password=123456
+user.age=22
+user.name=LiSi
+user.height=170cm
