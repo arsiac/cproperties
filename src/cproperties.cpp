@@ -1,4 +1,4 @@
-#include "CProperties.h"
+#include "cproperties.h"
 
 /***********************
  *     CProperties     *

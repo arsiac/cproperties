@@ -1,4 +1,4 @@
-#include "../include/CProperties.h"
+#include "cproperties.h"
 int main(int argc, char *argv[])
 {
     using namespace ac;

@@ -1,51 +1,75 @@
-#ifndef CPROPERTIES_H
-#define CPROPERTIES_H
-#include <stdlib.h>
-#include <string.h>
-#include <stdio.h>
+#ifndef CPP_CPROPERTIES_H
+#define CPP_CPROPERTIES_H
 
-#ifndef NULL
-#define NULL ((void *)0)
-#endif
+#include <cstdio>
 
-#ifndef TRUE
-#define TRUE 1
-#endif
+namespace ac
+{
+    class CProperties
+    {
+    public:
+        static int ARRAY_SIZE;
+        static int PROPERTY_MAX_SIZE;
 
-#ifndef FALSE
-#define FALSE 0 
-#endif
+        CProperties();
+        CProperties(const char *path);
+        ~CProperties();
 
-#define CPROPERTIES_ARRAY_SIZE 128
-#define CPROPERTIES_KEY_MAX_SIZE 256
-#define CPROPERTIES_VALUE_MAX_SIZE 256
+        void load(const char *path);
+        void save(const char *path);
+        int size();
+        void clear();
+        void remove(const char *key);
+        void set(const char *key, const char *value);
+        char *get(const char *key);
 
-typedef struct __Node {
-    int hash;
-    char *key;
-    char *value;
-    struct __Node *next;
-} cNode;
+    private:
+        class Node;
 
-typedef struct {
-    cNode **array;
-    int size;
-} cProperties;
+        Node **properties;
+        int propertySize;
 
-cNode *newNode(const int hash, const char *key, const char *value);
-void freeNode(cNode *node);
-cProperties *newProperties();
-void freeProperties(cProperties *cp);
+        void initialize();
+        size_t fileSize(FILE *file);
+        char *readFile(FILE *file);
+        bool isBlank(char c);
+        void analyze(const char *str);
+        void append(Node *node);
+        Node *find(const char *key);
+    };
 
-int cPropertiesSet(const cProperties *cp, const char *key, const char *value);
-const char *cPropertiesGet(const cProperties *cp, const char *key);
-int cPropertiesContainsKey(const cProperties *cp, const char *key);
-int cPropertiesDelete(const cProperties *cp, const char *key);
+    class CProperties::Node
+    {
+    public:
+        Node();
+        Node(const char *key, const char *value);
+        ~Node();
 
-void printProperties(const cProperties *cp);
-void printNode(const cNode *node);
-void printStructure(const cProperties *cp);
+        void setKey(const char *key);
+        void setValue(const char *value);
+        void setNext(Node *next);
+        void setPrevious(Node *previous);
 
-cProperties *createPropertiesFromFile(const char *path);
-int cPropertiesWriteToFile(const cProperties * cp, const char *path);
+        char *getKey();
+        char *getValue();
+        Node *getNext();
+        Node *getPrevious();
+
+        int hashCode();
+        bool equals(Node *other);
+        bool keyEquals(const char *key);
+
+    private:
+        int keyHashCode;
+        char *key;
+        char *value;
+        Node *next;
+        Node *previous;
+
+        int hash(const char *value);
+        bool strcmp(const char *src, const char *dst);
+        char *strcpy(const char *src);
+    };
+};
+
 #endif

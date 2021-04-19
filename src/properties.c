@@ -1,4 +1,4 @@
-#include "cproperties.h"
+#include "properties.h"
 
 // 计算字符串哈希值
 int stringHash(const char *szString)

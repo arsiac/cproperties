@@ -1,5 +1,5 @@
 #include <stdio.h>
-#include "../cproperties.h"
+#include "properties.h"
 
 int main()
 {

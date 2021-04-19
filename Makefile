@@ -2,29 +2,27 @@ HEAD_DIR=./include
 SOURCE_DIR=./src
 TEST_DIR=./test
 
-cproperties.o: 
-	gcc ${SOURCE_DIR}/cproperties.c \ 
+properties.o: 
+	gcc ${SOURCE_DIR}/properties.c \ 
 	    -I ${HEAD_DIR} \
+		-c -o properties.o
+
+
+cproperties.o:
+	g++ ${SOURCE_DIR}/cproperties.cpp \
+		-I ${HEAD_DIR} \
 		-c -o cproperties.o
 
-
-cpp_cproperties.o:
-	g++ ${SOURCE_DIR}/CProperties.cpp \
+test: clean properties.o
+	gcc properties.o ${TEST_DIR}/test.c \
 		-I ${HEAD_DIR} \
-		-c -o cpp_cproperties.o
+		-o test.out 
 
-test: clean cproperties.o
-	gcc cproperties.o ${TEST_DIR}/test.c \
+testcpp: clean cproperties.o
+	g++ cproperties.o ${TEST_DIR}/testcpp.cpp \
 		-I ${HEAD_DIR} \
-		-o test 
-
-testcpp: clean cpp_cproperties.o
-	g++ cpp_cproperties.o ${TEST_DIR}/testcpp.cpp \
-		-I ${HEAD_DIR} \
-		-o testcpp
-
-common: cproperties.o
-	gcc cproperties.o test/common.c -o common 
+		-o testcpp.out
 
 clean:
-	rm *.o
+	$(if $(wildcard *.o), rm *.o)
+	$(if $(wildcard *.out), rm *.out)
