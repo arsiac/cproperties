@@ -55,5 +55,5 @@ temp/
 build/
 
 # Clion
-/cmake-build-debug
-/.idea
+/cmake-build-debug/
+/.idea/
