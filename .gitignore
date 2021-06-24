@@ -53,3 +53,7 @@ dkms.conf
 temp/
 .vscode/
 build/
+
+# Clion
+/cmake-build-debug
+/.idea
