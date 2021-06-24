@@ -8,7 +8,7 @@
   ``` c
   cProperties *properties = newProperties();
 
-  ac::CProperties cproperties;
+  Properties cproperties;
   ```
 
   - create from a configuration file
@@ -16,9 +16,9 @@
     ``` c
     cProperties *properties = createPropertiesFromFile("filePath");
 
-    ac::CProperties cproperties("filePath");
+    Properties cproperties("filePath");
     // or
-    ac::CProperties cproperties;
+    Properties cproperties;
     cproperties.load("filePath");
     ```
 
@@ -79,5 +79,9 @@ user.name=ZhangSan
 ```
 
 - result 1
-
-  ![](images/ex001.png)
+``` properties
+user.name=ZhangSan
+user.password=123456
+user.phone=1234567890
+user.height=170cm
+```
